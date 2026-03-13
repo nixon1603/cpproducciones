@@ -1,0 +1,22 @@
+# render.yaml — https://docs.render.com/blueprint-spec
+services:
+  - type: web
+    name: cp-producciones
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false  # Configúralo manualmente en el dashboard de Render
+      - key: VITE_APP_ID
+        value: cp-producciones
+      - key: OWNER_OPEN_ID
+        value: local-admin
+      # DATABASE_URL — Opcional: si tienes MySQL externo, agrégalo aquí
+      # - key: DATABASE_URL
+      #   sync: false

@@ -1,0 +1,1 @@
+ALTER TABLE `purchases` MODIFY COLUMN `status` enum('pending','confirmed','cancelled','whatsapp_sent') NOT NULL DEFAULT 'pending';

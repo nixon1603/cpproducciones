@@ -1,0 +1,43 @@
+CREATE TABLE `events` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`title` varchar(255) NOT NULL,
+	`description` text,
+	`shortDescription` varchar(500),
+	`date` varchar(50),
+	`venue` varchar(255),
+	`city` varchar(100),
+	`country` varchar(100) DEFAULT 'Venezuela',
+	`imageUrl` text,
+	`bannerUrl` text,
+	`venueMapUrl` text,
+	`videoUrl` text,
+	`type` enum('concert','festival','other') NOT NULL DEFAULT 'concert',
+	`whatsappNumber` varchar(30),
+	`zones` json DEFAULT ('[]'),
+	`days` json DEFAULT ('[]'),
+	`normativas` text,
+	`taquilla` text,
+	`isActive` boolean NOT NULL DEFAULT true,
+	`isFeatured` boolean NOT NULL DEFAULT false,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `events_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `purchases` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`eventId` int NOT NULL,
+	`buyerName` varchar(255) NOT NULL,
+	`buyerEmail` varchar(320),
+	`buyerPhone` varchar(50),
+	`selectedZone` json,
+	`selectedDays` json DEFAULT ('[]'),
+	`quantity` int NOT NULL DEFAULT 1,
+	`unitPrice` decimal(10,2),
+	`totalPrice` decimal(10,2),
+	`status` enum('pending','confirmed','cancelled') NOT NULL DEFAULT 'pending',
+	`notes` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `purchases_id` PRIMARY KEY(`id`)
+);
