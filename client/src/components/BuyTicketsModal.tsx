@@ -82,53 +82,58 @@ export default function BuyTicketsModal({ event, open, onClose }: BuyTicketsModa
       console.error("Error saving purchase:", err);
     }
 
-    // Build WhatsApp message
+    // Build WhatsApp message — using plain text (no emojis) for maximum compatibility
     const daysForMsg = isMultiDay ? selectedDays : (days.length === 1 ? [days[0]] : []);
     const daysText = daysForMsg.length > 0
       ? daysForMsg.map((d) => {
           const artistsText = d.artists.length > 0 ? ` (${d.artists.join(", ")})` : "";
-          return `  • ${d.name}${d.date ? ` - ${d.date}` : ""}${artistsText}`;
+          return `  - ${d.name}${d.date ? ` | ${d.date}` : ""}${artistsText}`;
         }).join("\n")
-      : "  • Acceso general";
+      : "  - Acceso general";
 
     const message = [
-      `🎫 *SOLICITUD DE TICKETS - CP PRODUCCIONES*`,
+      `>> SOLICITUD DE TICKETS - CP PRODUCCIONES <<`,
+      `---------------------------------------`,
       ``,
-      `📋 *Datos del Comprador*`,
+      `* DATOS DEL COMPRADOR *`,
       `Nombre: ${buyerName}`,
       buyerEmail ? `Email: ${buyerEmail}` : null,
-      buyerPhone ? `Teléfono: ${buyerPhone}` : null,
+      buyerPhone ? `Telefono: ${buyerPhone}` : null,
       ``,
-      `🎵 *Evento*`,
+      `* EVENTO *`,
       `${event.title}`,
-      event.venue ? `📍 ${event.venue}${event.city ? `, ${event.city}` : ""}` : null,
-      event.date ? `📅 ${event.date}` : null,
+      event.venue ? `Lugar: ${event.venue}${event.city ? `, ${event.city}` : ""}` : null,
+      event.date ? `Fecha: ${event.date}` : null,
       ``,
-      isMultiDay ? `📆 *Día(s) Seleccionado(s)*` : null,
+      isMultiDay ? `* DIA(S) SELECCIONADO(S) *` : null,
       isMultiDay ? daysText : null,
-      ``,
-      `🏟️ *Zona Seleccionada*`,
+      isMultiDay ? `` : null,
+      `* ZONA SELECCIONADA *`,
       `${selectedZone?.name ?? "General"}`,
       ``,
-      `🎟️ *Cantidad de Tickets*`,
+      `* CANTIDAD DE TICKETS *`,
       `${quantity} entrada${quantity > 1 ? "s" : ""}`,
-      isMultiDay ? `${numDays} día${numDays > 1 ? "s" : ""}` : null,
+      isMultiDay ? `${numDays} dia${numDays > 1 ? "s" : ""}` : null,
       ``,
-      `💰 *Resumen de Pago*`,
+      `* RESUMEN DE PAGO *`,
       `Precio por ticket: $${unitPrice.toLocaleString()}`,
-      isMultiDay ? `Días seleccionados: ${numDays}` : null,
+      isMultiDay ? `Dias seleccionados: ${numDays}` : null,
       `Cantidad: ${quantity}`,
-      `*TOTAL: $${total.toLocaleString()}*`,
+      `---------------------------------------`,
+      `*TOTAL A PAGAR: $${total.toLocaleString()}*`,
+      `---------------------------------------`,
       ``,
-      `_Generado desde cpproducciones.com_`,
+      `Generado desde cpproducciones.com`,
     ]
       .filter(Boolean)
       .join("\n");
 
     const phone = event.whatsappNumber.replace(/\D/g, "");
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
-    toast.success("¡Redirigiendo a WhatsApp!");
+
+    // Use location.href instead of window.open to avoid popup blockers on mobile
+    window.location.href = url;
+    toast.success("Redirigiendo a WhatsApp...");
     onClose();
   };
 
