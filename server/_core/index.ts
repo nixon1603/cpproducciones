@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
+import fs from "fs";
+import path from "path";
 import net from "net";
 import multer from "multer";
 import { nanoid } from "nanoid";
@@ -9,9 +11,10 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { storagePut } from "../storage";
 import { sdk } from "./sdk";
 import { getUserByOpenId } from "../db";
+
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,9 +38,18 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Ensure uploads directory exists
+  const eventsUploadDir = path.join(UPLOADS_DIR, "events");
+  fs.mkdirSync(eventsUploadDir, { recursive: true });
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Serve uploaded files statically
+  app.use("/uploads", express.static(UPLOADS_DIR));
+
   // File upload endpoint (admin only)
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
   app.post("/api/upload", upload.single("file"), async (req: any, res: any) => {
@@ -48,9 +60,12 @@ async function startServer() {
       }
       if (!req.file) return res.status(400).json({ error: "No file" });
       const ext = req.file.originalname.split(".").pop() ?? "bin";
-      const key = `events/${nanoid(12)}.${ext}`;
-      const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
-      return res.json({ url, key });
+      const fileName = `${nanoid(12)}.${ext}`;
+      const filePath = path.join(eventsUploadDir, fileName);
+      fs.writeFileSync(filePath, req.file.buffer);
+      const url = `/uploads/events/${fileName}`;
+      console.log(`[Upload] Saved: ${url}`);
+      return res.json({ url, key: `events/${fileName}` });
     } catch (e: any) {
       console.error("[Upload] Error:", e);
       return res.status(500).json({ error: e.message });

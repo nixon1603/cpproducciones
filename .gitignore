@@ -114,3 +114,7 @@ temp/
 .manus-logs/
 client/public/__manus__/
 *.bak
+
+# Uploads (user-uploaded images)
+uploads/*
+!uploads/.gitkeep
