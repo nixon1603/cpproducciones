@@ -13,6 +13,7 @@ const socialLinks = [
 const footerLinks = [
   { href: "/", label: "Inicio" },
   { href: "/eventos", label: "Eventos" },
+  { href: "/nuestros-artistas", label: "Nuestros Artistas" },
   { href: "/quienes-somos", label: "Quiénes Somos" },
 ];
 

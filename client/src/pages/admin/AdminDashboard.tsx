@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { CalendarDays, ShoppingBag, Users, TrendingUp, ArrowRight, Plus } from "lucide-react";
+import { CalendarDays, ShoppingBag, Users, TrendingUp, ArrowRight, Plus, Mic2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/AdminLayout";
@@ -9,11 +9,13 @@ export default function AdminDashboard() {
   const { data: events } = trpc.events.listAll.useQuery();
   const { data: purchases } = trpc.purchases.listAll.useQuery();
   const { data: admins } = trpc.admins.list.useQuery();
+  const { data: artistsList } = trpc.artists.listAll.useQuery();
 
   const activeEvents = events?.filter((e) => e.isActive).length ?? 0;
   const totalEvents = events?.length ?? 0;
   const totalPurchases = purchases?.length ?? 0;
   const totalAdmins = admins?.length ?? 0;
+  const totalArtists = artistsList?.length ?? 0;
 
   const recentPurchases = purchases?.slice(0, 5) ?? [];
   const recentEvents = events?.slice(0, 5) ?? [];
@@ -21,8 +23,8 @@ export default function AdminDashboard() {
   const stats = [
     { label: "Eventos Activos", value: activeEvents, total: totalEvents, icon: CalendarDays, href: "/admin/eventos" },
     { label: "Total Compras", value: totalPurchases, icon: ShoppingBag, href: "/admin/compras" },
+    { label: "Artistas", value: totalArtists, icon: Mic2, href: "/admin/artistas" },
     { label: "Administradores", value: totalAdmins, icon: Users, href: "/admin/administradores" },
-    { label: "Ingresos Totales", value: `$${(purchases ?? []).reduce((acc, p) => acc + parseFloat(p.totalPrice ?? "0"), 0).toLocaleString()}`, icon: TrendingUp, href: "/admin/compras" },
   ];
 
   return (

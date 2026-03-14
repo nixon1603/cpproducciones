@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Music, Star, Shield, Zap, Ticket, ChevronLeft, ChevronRight, MapPin, Calendar, Flame, Play } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { ArrowRight, Music, Star, Shield, Zap, Ticket, ChevronLeft, ChevronRight, MapPin, Calendar, Flame, Play, Mic2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -8,6 +9,7 @@ import Footer from "@/components/Footer";
 import BuyTicketsModal from "@/components/BuyTicketsModal";
 import { trpc } from "@/lib/trpc";
 import type { Event, Zone, EventDay } from "../../../drizzle/schema";
+import type { SocialLinks } from "../../../drizzle/schema";
 
 const HERO_FALLBACK = "https://d2xsxph8kpxj0f.cloudfront.net/310519663432613032/4yzfEoxSx65F5YumFPTknr/hero-bg-kvJSatY9gkfRM228ompKm2.webp";
 
@@ -337,21 +339,117 @@ function HeroCarousel({ events, onBuy }: { events: Event[]; onBuy: (e: Event) =>
   );
 }
 
+// ── Animated Counter ──────────────────────────────────────────────────────────
+function AnimatedCounter({ value, label }: { value: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    if (!isInView) return;
+    const num = parseInt(value.replace(/[^0-9]/g, ""));
+    const prefix = value.match(/^[^0-9]*/)?.[0] ?? "";
+    const suffix = value.match(/[^0-9]*$/)?.[0] ?? "";
+    if (isNaN(num)) { setDisplay(value); return; }
+    let current = 0;
+    const step = Math.ceil(num / 40);
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= num) { current = num; clearInterval(timer); }
+      setDisplay(`${prefix}${current}${suffix}`);
+    }, 30);
+    return () => clearInterval(timer);
+  }, [isInView, value]);
+
+  return (
+    <div ref={ref} className="text-center p-6 rounded-xl border border-white/10 bg-card/50 hover:border-primary/30 transition-colors">
+      <p className="font-display text-3xl md:text-4xl font-bold cp-gradient-text mb-2">{display}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+// ── Artist Preview Card ───────────────────────────────────────────────────────
+function ArtistPreviewCard({ artist, idx }: { artist: any; idx: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ delay: idx * 0.2, duration: 0.6 }}
+      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-card/50 hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
+    >
+      <div className="relative h-64 md:h-80 overflow-hidden">
+        {artist.photoUrl ? (
+          <img src={artist.photoUrl} alt={artist.stageName || artist.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        ) : (
+          <div className="w-full h-full cp-gradient flex items-center justify-center">
+            <Mic2 className="w-16 h-16 text-white/20" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
+        {artist.genre && (
+          <div className="absolute top-4 left-4">
+            <Badge className="bg-primary/80 backdrop-blur-sm text-white text-xs font-bold border-0 py-1 px-3">
+              <Music className="w-3 h-3 mr-1.5" />
+              {artist.genre}
+            </Badge>
+          </div>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      </div>
+      <div className="p-5 space-y-2">
+        <h3 className="font-display text-xl md:text-2xl font-bold text-foreground group-hover:cp-gradient-text transition-all">
+          {artist.stageName || artist.name}
+        </h3>
+        {artist.bio && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{artist.bio}</p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const { data: events, isLoading } = trpc.events.listPublic.useQuery({ type: "concert" });
+  const { data: artistsData } = trpc.artists.listPublic.useQuery();
   const allEvents = events ?? [];
-
+  const allArtists = artistsData ?? [];
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      {/* ── Hero Carousel ──────────────────────────────────────────────────────────── */}
+      {/* ── Hero Carousel ──────────────────────────────────────── */}
       <HeroCarousel events={allEvents} onBuy={setSelectedEvent} />
 
-      {/* ── EVENTOS DISPONIBLES (BANNER PRINCIPAL) ────────────────────────── */}
-      <section id="eventos" className="py-16 md:py-24 relative">
+      {/* ── Floating particles decorative layer ──────────────── */}
+      <div className="absolute top-0 left-0 w-full h-screen pointer-events-none overflow-hidden z-0">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-primary/30 animate-float"
+            style={{
+              left: `${10 + i * 12}%`,
+              top: `${15 + (i % 4) * 20}%`,
+              animationDelay: `${i * 0.6}s`,
+              animationDuration: `${3 + i * 0.5}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ── EVENTOS DISPONIBLES ────────────────────────────────── */}
+      <motion.section
+        id="eventos"
+        className="py-16 md:py-24 relative"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7 }}
+      >
         {/* Decorative top line */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
@@ -408,10 +506,68 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ── EXPERIENCIAS QUE TRASCIENDEN ──────────────────────────────────── */}
-      <section className="py-16 md:py-24 relative overflow-hidden">
+      {/* ── NUESTROS ARTISTAS (PREVIEW) ─────────────────────────── */}
+      {allArtists.length > 0 && (
+        <motion.section
+          className="py-16 md:py-24 relative overflow-hidden"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
+          <div className="container">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+                  <Mic2 className="w-3 h-3" />
+                  Talento CP
+                </div>
+                <h2 className="font-heading text-3xl md:text-5xl font-bold text-foreground">
+                  Nuestros <span className="cp-gradient-text">Artistas</span>
+                </h2>
+                <p className="text-muted-foreground mt-2 text-sm md:text-base">
+                  Conoce a los talentos que hacen posible experiencias musicales inolvidables.
+                </p>
+              </div>
+              <Link href="/nuestros-artistas">
+                <Button variant="ghost" className="text-primary hover:text-primary/80 hidden sm:flex gap-2">
+                  Ver todos
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {allArtists.slice(0, 2).map((artist, idx) => (
+                <ArtistPreviewCard key={artist.id} artist={artist} idx={idx} />
+              ))}
+            </div>
+
+            <div className="mt-8 text-center sm:hidden">
+              <Link href="/nuestros-artistas">
+                <Button variant="outline" className="border-primary/30 text-primary">
+                  Ver todos los artistas
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* ── EXPERIENCIAS QUE TRASCIENDEN ──────────────────────────── */}
+      <motion.section
+        className="py-16 md:py-24 relative overflow-hidden"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7 }}
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
@@ -426,10 +582,22 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Animated Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <AnimatedCounter value="+10" label="Años de Experiencia" />
+            <AnimatedCounter value="+200" label="Eventos Producidos" />
+            <AnimatedCounter value="+50" label="Artistas Internacionales" />
+            <AnimatedCounter value="2" label="Continentes" />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map(({ icon: Icon, title, desc }, idx) => (
-              <div
+              <motion.div
                 key={title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
                 className="group relative p-6 rounded-2xl border border-white/10 bg-card/50 hover:border-primary/40 hover:bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
               >
                 {/* Number */}
@@ -441,14 +609,20 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading text-base font-bold text-foreground mb-2">{title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ── LISTO PARA VIVIR LA EXPERIENCIA ──────────────────────────────── */}
-      <section className="py-16 md:py-24">
+      {/* ── LISTO PARA VIVIR LA EXPERIENCIA ──────────────────────── */}
+      <motion.section
+        className="py-16 md:py-24"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7 }}
+      >
         <div className="container">
           <div className="relative rounded-3xl overflow-hidden">
             {/* Background layers */}
@@ -514,7 +688,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       <Footer />
 

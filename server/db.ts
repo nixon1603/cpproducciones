@@ -1,6 +1,6 @@
-import { and, desc, eq, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { events, purchases, users, type Event, type InsertEvent, type InsertPurchase, type InsertUser, type Purchase, type User } from "../drizzle/schema";
+import { artists, events, purchases, users, type Artist, type Event, type InsertArtist, type InsertEvent, type InsertPurchase, type InsertUser, type Purchase, type User } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -9,9 +9,11 @@ let memoryInitialized = false;
 let memoryUsers: User[] = [];
 let memoryEvents: Event[] = [];
 let memoryPurchases: Purchase[] = [];
+let memoryArtists: Artist[] = [];
 let nextUserId = 1;
 let nextEventId = 1;
 let nextPurchaseId = 1;
+let nextArtistId = 1;
 
 const useMemoryDb = () => !process.env.DATABASE_URL || _dbFailed;
 
@@ -151,9 +153,43 @@ function initMemoryDb() {
     },
   ];
 
+  memoryArtists = [
+    {
+      id: 1,
+      name: "Artista 1",
+      stageName: "Artista Uno",
+      bio: "Artista destacado de CP Producciones con amplia trayectoria en la escena musical venezolana e internacional. Su energía en el escenario y su talento lo han convertido en una de las figuras más solicitadas del momento.",
+      genre: "Reggaeton",
+      photoUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80&auto=format&fit=crop",
+      bannerUrl: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1920&q=80&auto=format&fit=crop",
+      videoUrl: "",
+      socialLinks: { instagram: "#", spotify: "#", youtube: "#" },
+      isActive: true,
+      sortOrder: 1,
+      createdAt,
+      updatedAt,
+    },
+    {
+      id: 2,
+      name: "Artista 2",
+      stageName: "Artista Dos",
+      bio: "Talento emergente que ha conquistado los escenarios con su estilo único y su capacidad para conectar con el público. Parte fundamental del roster de CP Producciones.",
+      genre: "Pop Urban",
+      photoUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80&auto=format&fit=crop",
+      bannerUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1920&q=80&auto=format&fit=crop",
+      videoUrl: "",
+      socialLinks: { instagram: "#", spotify: "#", youtube: "#" },
+      isActive: true,
+      sortOrder: 2,
+      createdAt,
+      updatedAt,
+    },
+  ];
+
   nextUserId = 3;
   nextEventId = 3;
   nextPurchaseId = 3;
+  nextArtistId = 3;
 }
 
 export async function getDb() {
@@ -536,4 +572,96 @@ export async function updatePurchaseStatus(id: number, status: "pending" | "conf
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(purchases).set({ status }).where(eq(purchases.id, id));
+}
+
+// ─── Artists ──────────────────────────────────────────────────────────────────
+
+export async function getActiveArtists() {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    return memoryArtists
+      .filter(a => a.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(artists).where(eq(artists.isActive, true)).orderBy(asc(artists.sortOrder));
+}
+
+export async function getAllArtists() {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    return [...memoryArtists].sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(artists).orderBy(asc(artists.sortOrder));
+}
+
+export async function getArtistById(id: number) {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    return memoryArtists.find(a => a.id === id);
+  }
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(artists).where(eq(artists.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createArtist(data: InsertArtist) {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    const now = new Date();
+    const created: Artist = {
+      id: nextArtistId++,
+      name: data.name,
+      stageName: data.stageName ?? null,
+      bio: data.bio ?? null,
+      genre: data.genre ?? null,
+      photoUrl: data.photoUrl ?? null,
+      bannerUrl: data.bannerUrl ?? null,
+      videoUrl: data.videoUrl ?? null,
+      socialLinks: (data.socialLinks as any) ?? null,
+      isActive: data.isActive ?? true,
+      sortOrder: data.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    memoryArtists.push(created);
+    return [{ insertId: created.id }];
+  }
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(artists).values(data);
+  return result;
+}
+
+export async function updateArtist(id: number, data: Partial<InsertArtist>) {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    memoryArtists = memoryArtists.map(artist => {
+      if (artist.id !== id) return artist;
+      return {
+        ...artist,
+        ...data,
+        updatedAt: new Date(),
+      } as Artist;
+    });
+    return;
+  }
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(artists).set(data).where(eq(artists.id, id));
+}
+
+export async function deleteArtist(id: number) {
+  if (useMemoryDb()) {
+    initMemoryDb();
+    memoryArtists = memoryArtists.filter(a => a.id !== id);
+    return;
+  }
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(artists).where(eq(artists.id, id));
 }

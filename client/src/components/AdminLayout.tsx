@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, CalendarDays, ShoppingBag, Users, Menu, X,
-  LogOut, ChevronRight, Shield
+  LogOut, ChevronRight, Shield, Mic2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -15,6 +15,7 @@ const CP_LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663432613032/4yzfEo
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/eventos", label: "Eventos", icon: CalendarDays },
+  { href: "/admin/artistas", label: "Artistas", icon: Mic2 },
   { href: "/admin/compras", label: "Compras", icon: ShoppingBag },
   { href: "/admin/administradores", label: "Administradores", icon: Users },
 ];

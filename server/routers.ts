@@ -5,11 +5,11 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
-  createAdminUser, createEvent, createPurchase, deleteEvent, deleteUser,
-  getAllAdmins, getAllEvents, getAllPurchases, getAllUsers,
-  getActiveEvents, getEventById, getPurchaseById,
+  createAdminUser, createArtist, createEvent, createPurchase, deleteArtist, deleteEvent, deleteUser,
+  getActiveArtists, getAllAdmins, getAllArtists, getAllEvents, getAllPurchases, getAllUsers,
+  getActiveEvents, getArtistById, getEventById, getPurchaseById,
   getPurchasesByEvent, getUserByEmail, getUserById, toggleEventActive,
-  updateEvent, updatePurchaseStatus, updateUserRole,
+  updateArtist, updateEvent, updatePurchaseStatus, updateUserRole,
 } from "./db";
 
 // ─── Zod Schemas ─────────────────────────────────────────────────────────────
@@ -61,6 +61,27 @@ const purchaseCreateSchema = z.object({
   unitPrice: z.number().min(0).optional(),
   totalPrice: z.number().min(0).optional(),
   notes: z.string().optional(),
+});
+
+const socialLinksSchema = z.object({
+  instagram: z.string().optional(),
+  spotify: z.string().optional(),
+  youtube: z.string().optional(),
+  tiktok: z.string().optional(),
+  twitter: z.string().optional(),
+}).optional();
+
+const artistCreateSchema = z.object({
+  name: z.string().min(1),
+  stageName: z.string().optional(),
+  bio: z.string().optional(),
+  genre: z.string().optional(),
+  photoUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
+  socialLinks: socialLinksSchema,
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().default(0),
 });
 
 // ─── Admin middleware ─────────────────────────────────────────────────────────
@@ -271,6 +292,58 @@ export const appRouter = router({
         return { success: true, action: "created" };
       }),
   }),
-});
 
+  // ─── Artists ───────────────────────────────────────────────────────────────
+  artists: router({
+    /** Public: list active artists */
+    listPublic: publicProcedure.query(async () => getActiveArtists()),
+
+    /** Admin: list all artists */
+    listAll: adminProcedure.query(async () => getAllArtists()),
+
+    /** Admin: get by id */
+    getById: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const artist = await getArtistById(input.id);
+        if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "Artista no encontrado" });
+        return artist;
+      }),
+
+    /** Admin: create artist */
+    create: adminProcedure
+      .input(artistCreateSchema)
+      .mutation(async ({ input }) => {
+        const result = await createArtist({
+          name: input.name,
+          stageName: input.stageName ?? null,
+          bio: input.bio ?? null,
+          genre: input.genre ?? null,
+          photoUrl: input.photoUrl ?? null,
+          bannerUrl: input.bannerUrl ?? null,
+          videoUrl: input.videoUrl ?? null,
+          socialLinks: input.socialLinks ?? null,
+          isActive: input.isActive,
+          sortOrder: input.sortOrder,
+        } as any);
+        return { success: true, insertId: (result as any)[0]?.insertId };
+      }),
+
+    /** Admin: update artist */
+    update: adminProcedure
+      .input(z.object({ id: z.number(), data: artistCreateSchema.partial() }))
+      .mutation(async ({ input }) => {
+        await updateArtist(input.id, input.data as any);
+        return { success: true };
+      }),
+
+    /** Admin: delete artist */
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteArtist(input.id);
+        return { success: true };
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

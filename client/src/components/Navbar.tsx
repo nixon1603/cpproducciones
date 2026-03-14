@@ -10,6 +10,7 @@ const CP_LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663432613032/4y
 const navLinks = [
   { href: "/", label: "Inicio" },
   { href: "/eventos", label: "Eventos" },
+  { href: "/nuestros-artistas", label: "Nuestros Artistas" },
   { href: "/quienes-somos", label: "Quiénes Somos" },
 ];
 
@@ -40,7 +41,7 @@ export default function Navbar() {
             <img
               src={CP_LOGO_URL}
               alt="CP Producciones"
-              className="h-10 md:h-12 w-auto object-contain"
+              className="h-14 md:h-16 w-auto object-contain"
             />
           </Link>
 

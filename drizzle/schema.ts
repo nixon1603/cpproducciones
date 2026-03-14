@@ -86,6 +86,42 @@ export type EventDay = {
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = typeof events.$inferInsert;
 
+// ─── Artists ──────────────────────────────────────────────────────────────────
+/**
+ * SocialLinks shape stored in JSON:
+ * { instagram?: string, spotify?: string, youtube?: string, tiktok?: string, twitter?: string }
+ */
+export const artists = mysqlTable("artists", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  stageName: varchar("stageName", { length: 255 }),
+  bio: text("bio"),
+  genre: varchar("genre", { length: 100 }),
+  /** CDN URL for main photo (recommended: 800×800 px) */
+  photoUrl: text("photoUrl"),
+  /** CDN URL for banner image (recommended: 1920×600 px) */
+  bannerUrl: text("bannerUrl"),
+  /** YouTube/Vimeo embed URL */
+  videoUrl: text("videoUrl"),
+  /** JSON object with social media links */
+  socialLinks: json("socialLinks").$type<SocialLinks>(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SocialLinks = {
+  instagram?: string;
+  spotify?: string;
+  youtube?: string;
+  tiktok?: string;
+  twitter?: string;
+};
+
+export type Artist = typeof artists.$inferSelect;
+export type InsertArtist = typeof artists.$inferInsert;
+
 // ─── Purchases ────────────────────────────────────────────────────────────────
 export const purchases = mysqlTable("purchases", {
   id: int("id").autoincrement().primaryKey(),
